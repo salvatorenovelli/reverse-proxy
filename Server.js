@@ -3,7 +3,7 @@ require('express-ws')(app);
 let httpProxy = require('http-proxy');
 
 let apiProxy = httpProxy.createProxyServer();
-let frontend = 'http://frontend-service:80',
+let frontend = 'http://frontend-service:5000',
     backend = 'http://backend-service:8080';
 
 
@@ -20,7 +20,7 @@ dns.lookup('backend-service', (err, address, family) => {
 
 
 
-let port = 3001;
+let port = 80;
 
 
 process.on('uncaughtException', function (err) {

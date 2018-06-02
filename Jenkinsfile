@@ -1,6 +1,6 @@
 node {
-    def project = 'website-versioning'
-    def appName = 'website-versioning-proxy'
+    def project = 'commons'
+    def appName = 'commons-reverseproxy'
 
     def imageTag = "gcr.io/${project}/${appName}:${env.BRANCH_NAME}.${env.BUILD_NUMBER}"
 

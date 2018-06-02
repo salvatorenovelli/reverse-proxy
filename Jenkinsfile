@@ -8,12 +8,8 @@ node {
 
     stage 'Build project'
 
-    sh("yarn install")
-    sh("yarn build")
+    sh("npm install")
 
     stage 'Build image'
-    sh("rm -rf docker/build")
-    sh("mv build docker")
-    sh("docker build docker -t ${imageTag}")
-
+    sh("docker build . -t ${imageTag}")
 }

@@ -18,6 +18,7 @@ fi
 case $1 in
     "build" )
         echo "Building ${IMAGE_TAG}"
+        npm install
         docker build -t ${IMAGE_TAG} .
     ;;
     "run" )

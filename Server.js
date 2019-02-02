@@ -35,17 +35,15 @@ app.all("/health", function (req, res) {
 });
 
 
+app.all("/archive-api/*", function (req, res) {
+    console.info('redirecting ' + req.originalUrl + " to " + archive);
+    apiProxy.web(req, res, {target: archive});
+});
+
+
 app.all("/api/*", function (req, res) {
-
-    let dst = backend;
-
-    let tokens = req.originalUrl.split("/");
-    if (tokens[2] === "archive-api") {
-        dst = archive;
-    }
-
-    console.info('redirecting ' + req.originalUrl + " to " + dst);
-    apiProxy.web(req, res, {target: dst});
+    console.info('redirecting ' + req.originalUrl + " to " + backend);
+    apiProxy.web(req, res, {target: backend});
 });
 
 app.ws('*', function (ws, req) {

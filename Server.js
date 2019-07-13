@@ -1,5 +1,4 @@
 let app = require('express')();
-require('express-ws')(app);
 let httpProxy = require('http-proxy');
 
 let apiProxy = httpProxy.createProxyServer();
@@ -46,13 +45,6 @@ app.all("/api/*", function (req, res) {
 
     console.info('redirecting ' + req.originalUrl + " to " + dst);
     apiProxy.web(req, res, {target: dst});
-});
-
-app.ws('*', function (ws, req) {
-    ws.on('*', function (msg) {
-        console.info(msg);
-    });
-    console.info('Websocket request intercepted');
 });
 
 app.all("*", function (req, res) {

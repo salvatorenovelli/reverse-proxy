@@ -4,7 +4,8 @@ let httpProxy = require('http-proxy');
 let apiProxy = httpProxy.createProxyServer();
 let frontend = 'http://frontend-service:5000',
     archive = 'http://archive:8080',
-    backend = 'http://backend-service:8080';
+    backend = 'http://backend-service:8080',
+    crawl_repository = 'http://crawl-repository:8080';
 
 
 const dns = require('dns');
@@ -19,6 +20,10 @@ dns.lookup('backend-service', (err, address, family) => {
 
 dns.lookup('archive', (err, address, family) => {
     console.info('archive: %j family: IPv%s', address, family);
+});
+
+dns.lookup('crawl-repository', (err, address, family) => {
+    console.info('crawl-repository: %j family: IPv%s', address, family);
 });
 
 let port = 80;
@@ -37,6 +42,11 @@ app.all("/health", function (req, res) {
 app.all("/archive-api/*", function (req, res) {
     console.info('redirecting ' + req.originalUrl + " to " + archive);
     apiProxy.web(req, res, {target: archive});
+});
+
+app.all("/crawl-repository/*", function (req, res) {
+    console.info('redirecting ' + req.originalUrl + " to " + crawl_repository);
+    apiProxy.web(req, res, {target: crawl_repository});
 });
 
 

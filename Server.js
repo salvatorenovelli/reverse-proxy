@@ -1,5 +1,5 @@
 let express = require('express');
-let { createProxyMiddleware } = require('http-proxy-middleware');
+let proxy = require('http-proxy-middleware');
 let dns = require('dns');
 
 let app = express();
@@ -36,12 +36,12 @@ app.all("/health", function (req, res) {
     res.send('I\'m fine!');
 });
 
-app.use('/archive-api', createProxyMiddleware({
+app.use('/archive-api', proxy({
     target: archive,
     changeOrigin: true
 }));
 
-app.use('/crawl-repository', createProxyMiddleware({
+app.use('/crawl-repository', proxy({
     target: crawl_repository,
     changeOrigin: true,
     pathRewrite: {
@@ -49,12 +49,12 @@ app.use('/crawl-repository', createProxyMiddleware({
     },
 }));
 
-app.use('/api', createProxyMiddleware({
+app.use('/api', proxy({
     target: backend,
     changeOrigin: true
 }));
 
-app.use('*', createProxyMiddleware({
+app.use('*', proxy({
     target: frontend,
     changeOrigin: true
 }));

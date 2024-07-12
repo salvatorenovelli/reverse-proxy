@@ -1,15 +1,16 @@
-let app = require('express')();
-let httpProxy = require('http-proxy');
+let express = require('express');
+let { createProxyMiddleware } = require('http-proxy-middleware');
+let dns = require('dns');
 
-let apiProxy = httpProxy.createProxyServer();
+let app = express();
+
 let frontend = 'http://frontend-service:5000',
     archive = 'http://archive:8080',
     backend = 'http://backend-service:8080',
     crawl_repository = 'http://crawl-repository:8080';
 
 
-const dns = require('dns');
-
+    
 dns.lookup('frontend-service', (err, address, family) => {
     console.info('frontend-service: %j family: IPv%s', address, family);
 });
@@ -28,38 +29,38 @@ dns.lookup('crawl-repository', (err, address, family) => {
 
 let port = 80;
 
-
 process.on('uncaughtException', function (err) {
     console.error("Uncaught exception: " + err.message);
 });
 
 app.all("/health", function (req, res) {
     console.info('Health check invoked');
-    res.send('I\'m fine!')
+    res.send('I\'m fine!');
 });
 
+app.use('/archive-api', createProxyMiddleware({
+    target: archive,
+    changeOrigin: true
+}));
 
-app.all("/archive-api/*", function (req, res) {
-    console.info('redirecting ' + req.originalUrl + " to " + archive);
-    apiProxy.web(req, res, {target: archive});
+app.use('/crawl-repository', createProxyMiddleware({
+    target: crawl_repository,
+    changeOrigin: true,
+    pathRewrite: {
+        '^/crawl-repository': '', // remove '/crawl-repository' from the path
+    },
+}));
+
+app.use('/api', createProxyMiddleware({
+    target: backend,
+    changeOrigin: true
+}));
+
+app.use('*', createProxyMiddleware({
+    target: frontend,
+    changeOrigin: true
+}));
+
+app.listen(port, () => {
+    console.log("Proxy started! Listening on " + port);
 });
-
-app.all("/crawl-repository/*", function (req, res) {
-    console.info('redirecting ' + req.originalUrl + " to " + crawl_repository);
-    apiProxy.web(req, res, {target: crawl_repository});
-});
-
-
-app.all("/api/*", function (req, res) {
-    console.info('redirecting ' + req.originalUrl + " to " + backend);
-    apiProxy.web(req, res, {target: backend});
-});
-
-
-app.all("*", function (req, res) {
-    console.info('redirecting ' + req.originalUrl + ' to frontend');
-    apiProxy.web(req, res, {target: frontend});
-});
-
-app.listen(port);
-console.log("Proxy started! Listening on " + port);

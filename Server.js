@@ -9,8 +9,6 @@ let frontend = 'http://frontend-service:5000',
     backend = 'http://backend-service:8080',
     crawl_repository = 'http://crawl-repository:8080';
 
-
-    
 dns.lookup('frontend-service', (err, address, family) => {
     console.info('frontend-service: %j family: IPv%s', address, family);
 });

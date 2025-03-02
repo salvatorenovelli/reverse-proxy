@@ -1,9 +1,6 @@
-#Configuration file for Google Cloud Builds
+# Configuration file for Google Cloud Builds
 
 steps:
-  - name: 'gcr.io/cloud-builders/yarn'
-    args: ['install']
-
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '.',
            '-t', 'eu.gcr.io/$PROJECT_ID/reverse-proxy:$TAG_NAME',

@@ -1,17 +1,36 @@
-# You should always specify a full version here to ensure all of your developers
-# are running the same version of Node.
-FROM node:8.5.0-alpine
+# ---- Base Stage ----
+FROM node:20-alpine AS builder
 
-# The base node image sets a very verbose log level.
-ENV NPM_CONFIG_LOGLEVEL warn
+WORKDIR /app
 
-# Copy all local files into the image.
+# Copy package.json and package-lock.json separately to leverage Docker caching
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm install --only=production
+
+# Copy the entire source code
 COPY . .
 
-RUN npm install
+# ---- Production Stage ----
+FROM node:20-alpine
 
-# Set the command to start the node server.
-CMD node Server.js
+WORKDIR /app
 
-# Tell Docker about the port we'll run on.
-EXPOSE 3001
+# Copy the production dependencies from the builder stage
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app .
+
+# Set non-root user for better security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
+# Expose application port
+EXPOSE 80
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=80
+
+# Start the application
+CMD ["node", "Server.js"]

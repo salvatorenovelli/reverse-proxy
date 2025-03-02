@@ -1,16 +1,12 @@
 #!/bin/bash
 
-
-
 export GCE_PROJECT_ID="$(gcloud config get-value project -q)"
-export VERSION=`jq -r '.version' package.json`
-export ARTIFACT_ID=`jq -r '.name' package.json`
+export VERSION=$(jq -r '.version' package.json)
+export ARTIFACT_ID=$(jq -r '.name' package.json)
 
 export IMAGE_TAG=gcr.io/${GCE_PROJECT_ID}/${ARTIFACT_ID}:${VERSION}
 
-
-if [[ -z "$1" ]]
-  then
+if [[ -z "$1" ]]; then
     echo "No argument supplied"
     exit
 fi
@@ -18,14 +14,10 @@ fi
 echo "Going to $1 ${IMAGE_TAG}"
 
 confirm() {
-    read -r -p "Do you want to continue? [y/N]" response
+    read -r -p "Do you want to continue? [y/N] " response
     case "$response" in
-        [yY][eE][sS]|[yY])
-            true
-            ;;
-        *)
-            false
-            ;;
+        [yY][eE][sS]|[yY]) true ;;
+        *) false ;;
     esac
 }
 
@@ -37,13 +29,10 @@ NO_COLOR='\033[0m'
 
 case $1 in
     "cloud-build" )
-
-
         GIT_TAG_NAME=$(git tag -l --points-at HEAD)
         GIT_SHORT_SHA=$(git rev-parse --short HEAD)
 
-        if [[ -z ${GIT_TAG_NAME} ]]
-          then
+        if [[ -z ${GIT_TAG_NAME} ]]; then
             GIT_TAG_NAME="untagged"
         fi
 
@@ -57,38 +46,40 @@ case $1 in
         echo -e " SHA: ${BLUE}${SHORT_SHA}${NO_COLOR}"
         ! confirm  && exit
 
-
         SUBST=TAG_NAME=${TAG_NAME},SHORT_SHA=${SHORT_SHA}
         gcloud builds submit --substitutions=${SUBST} --machine-type=n1-highcpu-8
-#       cloud-build-local --substitutions=${SUBST} --dryrun=false --write-workspace=../tmp_cloudbuildlocal .
     ;;
+    
     "build" )
-        yarn install || exit 1
-        yarn build || exit 1
-        rm -rf docker/build
-        mv build docker
         echo "Building ${IMAGE_TAG}"
-        docker build docker -t ${IMAGE_TAG}
+        docker build . -t ${IMAGE_TAG} || exit 1
     ;;
+
     "clean" )
+        echo -e "${YELLOW}Cleaning up build artifacts...${NO_COLOR}"
         rm -rf build
-        rm -rf docker/build
     ;;
+
     "run" )
-        docker run --name ${ARTIFACT_ID} -it --rm -p 3001:3001 ${IMAGE_TAG}
+        echo -e "${GREEN}Running the container...${NO_COLOR}"
+        docker run --name ${ARTIFACT_ID} -it --rm -p 80:80 ${IMAGE_TAG}
     ;;
+
     "push" )
-        gcloud docker -- push ${IMAGE_TAG}
+        echo -e "${BLUE}Pushing the image to Google Container Registry...${NO_COLOR}"
+        gcloud auth configure-docker
+        docker push ${IMAGE_TAG}
     ;;
+
     "deploy" )
+        echo -e "${GREEN}Deploying to Kubernetes...${NO_COLOR}"
         kubectl delete -f k8s/production.yaml
         sed -i.bak "s#<IMAGE_TAG_DO_NOT_EDIT>#${IMAGE_TAG}#" k8s/production.yaml
         kubectl apply -f k8s/
         mv k8s/production.yaml.bak k8s/production.yaml
     ;;
+
     *)
-        echo "'$1' is not a valid action"
+        echo -e "${RED}'$1' is not a valid action${NO_COLOR}"
     ;;
 esac
-
-

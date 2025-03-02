@@ -1,15 +1,13 @@
-const express = require('express');
-const { createProxyMiddleware } = require('http-proxy-middleware');
-const dns = require('dns');
+let express = require('express');
+let proxy = require('http-proxy-middleware');
+let dns = require('dns');
 
-const app = express();
+let app = express();
 
-const frontend = process.env.FRONTEND_URL || 'http://frontend-service:5000';
-const archive = process.env.ARCHIVE_URL || 'http://archive:8080';
-const bff = process.env.BACKEND_URL || 'http://bff:8080';
-const crawl_repository = process.env.CRAWL_REPOSITORY_URL || 'http://crawl-repository:8080';
-
-const port = process.env.PORT || 80;
+let frontend = 'http://frontend-service:5000',
+    archive = 'http://archive:8080',
+    bff = 'http://bff:8080',
+    crawl_repository = 'http://crawl-repository:8080';
 
 dns.lookup('frontend-service', (err, address, family) => {
     console.info('frontend-service: %j family: IPv%s', address, family);
@@ -27,50 +25,40 @@ dns.lookup('crawl-repository', (err, address, family) => {
     console.info('crawl-repository: %j family: IPv%s', address, family);
 });
 
-const onProxyError = (err, req, res) => {
-    console.error(`Proxy error for ${req.url}:`, err.message);
-    res.status(502).send('Bad Gateway');
-};
+let port = 80;
 
-// Health Check
-app.all("/health", (req, res) => {
-    console.info('Health check invoked');
-    res.send("I'm fine!");
+process.on('uncaughtException', function (err) {
+    console.error("Uncaught exception: " + err.message);
 });
 
-// API Proxy Routes
-app.use('/archive-api', createProxyMiddleware({
+app.all("/health", function (req, res) {
+    console.info('Health check invoked');
+    res.send('I\'m fine!');
+});
+
+app.use('/archive-api', proxy({
     target: archive,
-    changeOrigin: true,
-    onError: onProxyError
+    changeOrigin: true
 }));
 
-app.use('/crawl-repository', createProxyMiddleware({
+app.use('/crawl-repository', proxy({
     target: crawl_repository,
     changeOrigin: true,
-    pathRewrite: { '^/crawl-repository': '' },
-    onError: onProxyError
+    pathRewrite: {
+        '^/crawl-repository': '', // remove '/crawl-repository' from the path
+    },
 }));
 
-app.use('/api', createProxyMiddleware({
+app.use('/api', proxy({
     target: bff,
-    changeOrigin: true,
-    onError: onProxyError
+    changeOrigin: true
 }));
 
-// Frontend Catch-All Route
-app.use('/', createProxyMiddleware({
+app.use('*', proxy({
     target: frontend,
-    changeOrigin: true,
-    onError: onProxyError
+    changeOrigin: true
 }));
 
-// Graceful Error Handling
-process.on('uncaughtException', (err) => {
-    console.error("Uncaught exception:", err.message);
-});
-
-// Start Server
 app.listen(port, () => {
-    console.log(`Proxy started! Listening on port ${port}`);
+    console.log("Proxy started! Listening on " + port);
 });

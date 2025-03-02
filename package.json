@@ -1,8 +1,9 @@
 {
   "name": "reverse-proxy",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "",
   "main": "Server.js",
+  "debug": "node Server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

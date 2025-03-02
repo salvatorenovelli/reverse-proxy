@@ -1,13 +1,15 @@
-let express = require('express');
-let proxy = require('http-proxy-middleware');
-let dns = require('dns');
+const express = require('express');
+const { createProxyMiddleware } = require('http-proxy-middleware');
+const dns = require('dns');
 
-let app = express();
+const app = express();
 
-let frontend = 'http://frontend-service:5000',
-    archive = 'http://archive:8080',
-    bff = 'http://bff:8080',
-    crawl_repository = 'http://crawl-repository:8080';
+const frontend = process.env.FRONTEND_URL || 'http://frontend-service:5000';
+const archive = process.env.ARCHIVE_URL || 'http://archive:8080/archive-api';
+const bff = process.env.BACKEND_URL || 'http://bff:8080/api';
+const crawl_repository = process.env.CRAWL_REPOSITORY_URL || 'http://crawl-repository:8080';
+
+const port = process.env.PORT || 80;
 
 dns.lookup('frontend-service', (err, address, family) => {
     console.info('frontend-service: %j family: IPv%s', address, family);
@@ -25,40 +27,49 @@ dns.lookup('crawl-repository', (err, address, family) => {
     console.info('crawl-repository: %j family: IPv%s', address, family);
 });
 
-let port = 80;
+const onProxyError = (err, req, res) => {
+    console.error(`Proxy error for ${req.url}:`, err.message);
+    res.status(502).send('Bad Gateway');
+};
 
-process.on('uncaughtException', function (err) {
-    console.error("Uncaught exception: " + err.message);
-});
-
-app.all("/health", function (req, res) {
+// Health Check
+app.all("/health", (req, res) => {
     console.info('Health check invoked');
-    res.send('I\'m fine!');
+    res.send("I'm fine!");
 });
 
-app.use('/archive-api', proxy({
+// API Proxy Routes
+app.use('/archive-api', createProxyMiddleware({
     target: archive,
-    changeOrigin: true
+    changeOrigin: true,
+    onError: onProxyError
 }));
 
-app.use('/crawl-repository', proxy({
+app.use('/crawl-repository', createProxyMiddleware({
     target: crawl_repository,
     changeOrigin: true,
-    pathRewrite: {
-        '^/crawl-repository': '', // remove '/crawl-repository' from the path
-    },
+    onError: onProxyError
 }));
 
-app.use('/api', proxy({
+app.use('/api', createProxyMiddleware({
     target: bff,
-    changeOrigin: true
+    changeOrigin: true,
+    onError: onProxyError
 }));
 
-app.use('*', proxy({
+// Frontend Catch-All Route
+app.use('/', createProxyMiddleware({
     target: frontend,
-    changeOrigin: true
+    changeOrigin: true,
+    onError: onProxyError
 }));
 
+// Graceful Error Handling
+process.on('uncaughtException', (err) => {
+    console.error("Uncaught exception:", err.message);
+});
+
+// Start Server
 app.listen(port, () => {
-    console.log("Proxy started! Listening on " + port);
+    console.log(`Proxy started! Listening on port ${port}`);
 });

@@ -59,7 +59,7 @@ app.use('/api', createProxyMiddleware({
 }));
 
 // Frontend Catch-All Route
-app.use('*', createProxyMiddleware({
+app.use('/', createProxyMiddleware({
     target: frontend,
     changeOrigin: true,
     onError: onProxyError

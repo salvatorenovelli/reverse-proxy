@@ -4,7 +4,8 @@ export GCE_PROJECT_ID="$(gcloud config get-value project -q)"
 export VERSION=$(jq -r '.version' package.json)
 export ARTIFACT_ID=$(jq -r '.name' package.json)
 
-export IMAGE_TAG=gcr.io/${GCE_PROJECT_ID}/${ARTIFACT_ID}:${VERSION}
+export REGISTRY=europe-west2-docker.pkg.dev/${GCE_PROJECT_ID}/myseotoolbox
+export IMAGE_TAG=${REGISTRY}/${ARTIFACT_ID}:${VERSION}
 
 if [[ -z "$1" ]]; then
     echo "No argument supplied"
@@ -66,8 +67,8 @@ case $1 in
     ;;
 
     "push" )
-        echo -e "${BLUE}Pushing the image to Google Container Registry...${NO_COLOR}"
-        gcloud auth configure-docker
+        echo -e "${BLUE}Pushing the image to Artifact Registry...${NO_COLOR}"
+        gcloud auth configure-docker europe-west2-docker.pkg.dev
         docker push ${IMAGE_TAG}
     ;;
 
